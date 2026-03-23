@@ -721,7 +721,7 @@ export class FirebaseAuthenticationWeb
       );
     }
     try {
-      const session = multiFactor(user).getSession();
+      const session = await multiFactor(user).getSession();
       const phoneAuthProvider = new PhoneAuthProvider(auth);
       const verificationId = await phoneAuthProvider.verifyPhoneNumber(
         {

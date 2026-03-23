@@ -8,6 +8,8 @@ import type {
   UserCredential as FirebaseUserCredential,
   UserInfo as FirebaseUserInfo,
   UserMetadata as FirebaseUserMeatdata,
+  MultiFactorInfo,
+  MultiFactorResolver,
 } from 'firebase/auth';
 import {
   EmailAuthProvider,
@@ -16,6 +18,8 @@ import {
   GoogleAuthProvider,
   OAuthCredential,
   OAuthProvider,
+  PhoneAuthProvider,
+  PhoneMultiFactorGenerator,
   RecaptchaVerifier,
   TwitterAuthProvider,
   applyActionCode,
@@ -28,6 +32,7 @@ import {
   fetchSignInMethodsForEmail,
   getAdditionalUserInfo,
   getAuth,
+  getMultiFactorResolver,
   getRedirectResult,
   inMemoryPersistence,
   indexedDBLocalPersistence,
@@ -36,6 +41,7 @@ import {
   linkWithPhoneNumber,
   linkWithPopup,
   linkWithRedirect,
+  multiFactor,
   reload,
   revokeAccessToken,
   sendEmailVerification,
@@ -80,6 +86,9 @@ import type {
   LinkWithEmailLinkOptions,
   LinkWithOAuthOptions,
   LinkWithPhoneNumberOptions,
+  MFAConfirmVerificationOptions,
+  MFAEnrollSecondFactorOptions,
+  MFAVerifySecondFactorOptions,
   PhoneCodeSentEvent,
   PhoneVerificationFailedEvent,
   RequestAppTrackingTransparencyPermissionResult,
@@ -113,13 +122,17 @@ import { Persistence, ProviderId } from './definitions';
 
 export class FirebaseAuthenticationWeb
   extends WebPlugin
-  implements FirebaseAuthenticationPlugin
-{
+  implements FirebaseAuthenticationPlugin {
   public static readonly AUTH_STATE_CHANGE_EVENT = 'authStateChange';
   public static readonly ID_TOKEN_CHANGE_EVENT = 'idTokenChange';
   public static readonly PHONE_CODE_SENT_EVENT = 'phoneCodeSent';
   public static readonly PHONE_VERIFICATION_FAILED_EVENT =
     'phoneVerificationFailed';
+  public static readonly MFA_CODE_SENT_EVENT = 'mfaCodeSent';
+  public static readonly MFA_VERIFICATION_FAILED_EVENT = 'mfaVerificationFailed';
+  public static readonly MFA_VERIFICATION_COMPLETED_EVENT = 'mfaVerificationCompleted';
+  public static readonly MFA_ENROLLMENT_VERIFICATION_COMPLETED_EVENT = "mfaEnrollmentVerificationCompleted";
+  public static readonly MFA_ENROLLMENT_VERIFICATION_FAILED_EVENT = "mfaEnrollmentVerificationFailed";
   public static readonly ERROR_NO_USER_SIGNED_IN = 'No user is signed in.';
   public static readonly ERROR_PHONE_NUMBER_MISSING =
     'phoneNumber must be provided.';
@@ -127,9 +140,11 @@ export class FirebaseAuthenticationWeb
     'recaptchaVerifier must be provided and must be an instance of RecaptchaVerifier.';
   public static readonly ERROR_CONFIRMATION_RESULT_MISSING =
     'No confirmation result with this verification id was found.';
+  public static readonly ERROR_MFA_ERROR_MISSING = 'MFA error object is missing.';
+  public static readonly ERROR_MFA_RESOLVER_MISSING = 'MFA resolver is missing.';
 
-  private lastConfirmationResult: Map<string, ConfirmationResult> = new Map();
-
+  private readonly lastConfirmationResult: Map<string, ConfirmationResult> = new Map();
+  private readonly lastMFAResolver: Map<string, MultiFactorResolver> = new Map();
   constructor() {
     super();
     const auth = getAuth();
@@ -684,6 +699,152 @@ export class FirebaseAuthenticationWeb
       };
       this.notifyListeners(
         FirebaseAuthenticationWeb.PHONE_VERIFICATION_FAILED_EVENT,
+        event,
+      );
+    }
+  }
+
+  public async enrollSecondFactor(options: MFAEnrollSecondFactorOptions): Promise<void> {
+    if (
+      !options.recaptchaVerifier ||
+      !(options.recaptchaVerifier instanceof RecaptchaVerifier)
+    ) {
+      throw new Error(
+        FirebaseAuthenticationWeb.ERROR_RECAPTCHA_VERIFIER_MISSING,
+      );
+    }
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error(
+        FirebaseAuthenticationWeb.ERROR_NO_USER_SIGNED_IN,
+      );
+    }
+    try {
+      const session = multiFactor(user).getSession();
+      const phoneAuthProvider = new PhoneAuthProvider(auth);
+      const verificationId = await phoneAuthProvider.verifyPhoneNumber(
+        {
+          phoneNumber: options.phoneNumber.replace(/ /g, ''),
+          session: session,
+        },
+        options.recaptchaVerifier,
+      );
+      const event: PhoneCodeSentEvent = {
+        verificationId,
+      };
+      this.notifyListeners(
+        FirebaseAuthenticationWeb.MFA_CODE_SENT_EVENT,
+        event,
+      );
+    } catch (error) {
+      const event: PhoneVerificationFailedEvent = {
+        message: this.getErrorMessage(error),
+      };
+      this.notifyListeners(
+        FirebaseAuthenticationWeb.MFA_ENROLLMENT_VERIFICATION_FAILED_EVENT,
+        event,
+      );
+    }
+  }
+
+  public async verifySecondFactor(options: MFAVerifySecondFactorOptions): Promise<{ hint?: MultiFactorInfo }> {
+    if (!options.error) {
+      throw new Error(FirebaseAuthenticationWeb.ERROR_MFA_ERROR_MISSING);
+    }
+    if (
+      !options.recaptchaVerifier ||
+      !(options.recaptchaVerifier instanceof RecaptchaVerifier)
+    ) {
+      throw new Error(
+        FirebaseAuthenticationWeb.ERROR_RECAPTCHA_VERIFIER_MISSING,
+      );
+    }
+    const auth = getAuth();
+    try {
+      const resolver = getMultiFactorResolver(auth, options.error as any);
+      const phoneAuthProvider = new PhoneAuthProvider(auth);
+      const verificationId = await phoneAuthProvider.verifyPhoneNumber(
+        {
+          multiFactorHint: resolver.hints[0],
+          session: resolver.session,
+        },
+        options.recaptchaVerifier,
+      );
+      this.lastMFAResolver.set(verificationId, resolver);
+      const event: PhoneCodeSentEvent = {
+        verificationId,
+      };
+      this.notifyListeners(
+        FirebaseAuthenticationWeb.MFA_CODE_SENT_EVENT,
+        event,
+      );
+      return { hint: resolver.hints[0] }
+    } catch (error) {
+      const event: PhoneVerificationFailedEvent = {
+        message: this.getErrorMessage(error),
+      };
+      this.notifyListeners(
+        FirebaseAuthenticationWeb.MFA_VERIFICATION_FAILED_EVENT,
+        event,
+      );
+    }
+    return { hint: undefined }
+  }
+
+  public async confirmSmsCode(options: MFAConfirmVerificationOptions): Promise<void> {
+    const resolver = this.lastMFAResolver.get(options.verificationId);
+    if (!resolver) {
+      throw new Error(FirebaseAuthenticationWeb.ERROR_MFA_ERROR_MISSING);
+    }
+    try {
+      const cred = PhoneAuthProvider.credential(
+        options.verificationId,
+        options.smsCode,
+      );
+      const multiFactorAssertion = PhoneMultiFactorGenerator.assertion(cred);
+      const userCredential = await resolver.resolveSignIn(multiFactorAssertion);
+      const signInResult = this.createSignInResult(userCredential, cred);
+      this.notifyListeners(
+        FirebaseAuthenticationWeb.MFA_VERIFICATION_COMPLETED_EVENT,
+        signInResult,
+      );
+    } catch (error) {
+      const event: PhoneVerificationFailedEvent = {
+        message: this.getErrorMessage(error),
+      };
+      this.notifyListeners(
+        FirebaseAuthenticationWeb.MFA_VERIFICATION_FAILED_EVENT,
+        event,
+      );
+    }
+  }
+
+  public async confirmEnrollmentSmsCode(options: MFAConfirmVerificationOptions): Promise<void> {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error(
+        FirebaseAuthenticationWeb.ERROR_NO_USER_SIGNED_IN,
+      );
+    }
+    try {
+      const cred = PhoneAuthProvider.credential(
+        options.verificationId,
+        options.smsCode,
+      );
+      const multiFactorAssertion = PhoneMultiFactorGenerator.assertion(cred);
+      await multiFactor(user).enroll(multiFactorAssertion, 'personal-phone-number');
+      this.notifyListeners(
+        FirebaseAuthenticationWeb.MFA_ENROLLMENT_VERIFICATION_COMPLETED_EVENT,
+        undefined
+      );
+    } catch (error) {
+      const event: PhoneVerificationFailedEvent = {
+        message: this.getErrorMessage(error),
+      };
+      this.notifyListeners(
+        FirebaseAuthenticationWeb.MFA_ENROLLMENT_VERIFICATION_FAILED_EVENT,
         event,
       );
     }

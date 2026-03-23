@@ -502,6 +502,15 @@ const verifyBeforeUpdateEmail = async () => {
 * [`addListener('phoneVerificationFailed', ...)`](#addlistenerphoneverificationfailed-)
 * [`addListener('phoneCodeSent', ...)`](#addlistenerphonecodesent-)
 * [`removeAllListeners()`](#removealllisteners)
+* [`enrollSecondFactor(...)`](#enrollsecondfactor)
+* [`verifySecondFactor(...)`](#verifysecondfactor)
+* [`confirmSmsCode(...)`](#confirmsmscode)
+* [`confirmEnrollmentSmsCode(...)`](#confirmenrollmentsmscode)
+* [`addListener('mfaVerificationCompleted', ...)`](#addlistenermfaverificationcompleted-)
+* [`addListener('mfaVerificationFailed', ...)`](#addlistenermfaverificationfailed-)
+* [`addListener('mfaCodeSent', ...)`](#addlistenermfacodesent-)
+* [`addListener('mfaEnrollmentVerificationCompleted', ...)`](#addlistenermfaenrollmentverificationcompleted-)
+* [`addListener('mfaEnrollmentVerificationFailed', ...)`](#addlistenermfaenrollmentverificationfailed-)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
 * [Enums](#enums)
@@ -1749,6 +1758,194 @@ Remove all listeners for this plugin.
 --------------------
 
 
+### enrollSecondFactor(...)
+
+```typescript
+enrollSecondFactor(options: MFAEnrollSecondFactorOptions) => Promise<void>
+```
+
+Start MFA enrollment.
+
+| Param         | Type                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#mfaenrollsecondfactoroptions">MFAEnrollSecondFactorOptions</a></code> |
+
+**Since:** 7.5.1
+
+--------------------
+
+
+### verifySecondFactor(...)
+
+```typescript
+verifySecondFactor(options: MFAVerifySecondFactorOptions) => Promise<{ hint?: MultiFactorInfo; }>
+```
+
+Start MFA verification.
+
+| Param         | Type                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#mfaverifysecondfactoroptions">MFAVerifySecondFactorOptions</a></code> |
+
+**Returns:** <code>Promise&lt;{ hint?: <a href="#multifactorinfo">MultiFactorInfo</a>; }&gt;</code>
+
+**Since:** 7.5.1
+
+--------------------
+
+
+### confirmSmsCode(...)
+
+```typescript
+confirmSmsCode(options: MFAConfirmVerificationOptions) => Promise<void>
+```
+
+Finish MFA verification with confirmation.
+
+| Param         | Type                                                                                    |
+| ------------- | --------------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#mfaconfirmverificationoptions">MFAConfirmVerificationOptions</a></code> |
+
+**Since:** 7.5.1
+
+--------------------
+
+
+### confirmEnrollmentSmsCode(...)
+
+```typescript
+confirmEnrollmentSmsCode(options: MFAConfirmVerificationOptions) => Promise<void>
+```
+
+Finish MFA enrollment with confirmation.
+
+| Param         | Type                                                                                    |
+| ------------- | --------------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#mfaconfirmverificationoptions">MFAConfirmVerificationOptions</a></code> |
+
+**Since:** 7.5.1
+
+--------------------
+
+
+### addListener('mfaVerificationCompleted', ...)
+
+```typescript
+addListener(eventName: 'mfaVerificationCompleted', listenerFunc: MFAVerificationCompletedListener) => Promise<PluginListenerHandle>
+```
+
+Listen for a completed MFA verification.
+
+This listener only fires in two situations:
+1. **Instant verification**: In some cases the phone number can be instantly
+verified without needing to send or enter a verification code.
+2. **Auto-retrieval**: On some devices Google Play services can automatically
+detect the incoming verification SMS and perform verification without
+user action.
+
+Only available for Android.
+
+| Param              | Type                                                                                          |
+| ------------------ | --------------------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'mfaVerificationCompleted'</code>                                                       |
+| **`listenerFunc`** | <code><a href="#mfaverificationcompletedlistener">MFAVerificationCompletedListener</a></code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+**Since:** 1.3.0
+
+--------------------
+
+
+### addListener('mfaVerificationFailed', ...)
+
+```typescript
+addListener(eventName: 'mfaVerificationFailed', listenerFunc: MFAVerificationFailedListener) => Promise<PluginListenerHandle>
+```
+
+Listen for a failed phone verification.
+
+| Param              | Type                                                                                    |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'mfaVerificationFailed'</code>                                                    |
+| **`listenerFunc`** | <code><a href="#mfaverificationfailedlistener">MFAVerificationFailedListener</a></code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+**Since:** 1.3.0
+
+--------------------
+
+
+### addListener('mfaCodeSent', ...)
+
+```typescript
+addListener(eventName: 'mfaCodeSent', listenerFunc: MFACodeSentListener) => Promise<PluginListenerHandle>
+```
+
+Listen for a MFA verification code.
+
+| Param              | Type                                                                |
+| ------------------ | ------------------------------------------------------------------- |
+| **`eventName`**    | <code>'mfaCodeSent'</code>                                          |
+| **`listenerFunc`** | <code><a href="#mfacodesentlistener">MFACodeSentListener</a></code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+**Since:** 1.3.0
+
+--------------------
+
+
+### addListener('mfaEnrollmentVerificationCompleted', ...)
+
+```typescript
+addListener(eventName: 'mfaEnrollmentVerificationCompleted', listenerFunc: MFAVerificationCompletedListener) => Promise<PluginListenerHandle>
+```
+
+Listen for a completed MFA enrollment verification.
+
+This listener only fires in two situations:
+1. **Instant verification**: In some cases the phone number can be instantly
+verified without needing to send or enter a verification code.
+2. **Auto-retrieval**: On some devices Google Play services can automatically
+detect the incoming verification SMS and perform verification without
+user action.
+
+Only available for Android.
+
+| Param              | Type                                                                                          |
+| ------------------ | --------------------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'mfaEnrollmentVerificationCompleted'</code>                                             |
+| **`listenerFunc`** | <code><a href="#mfaverificationcompletedlistener">MFAVerificationCompletedListener</a></code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+**Since:** 1.3.0
+
+--------------------
+
+
+### addListener('mfaEnrollmentVerificationFailed', ...)
+
+```typescript
+addListener(eventName: 'mfaEnrollmentVerificationFailed', listenerFunc: MFAVerificationFailedListener) => Promise<PluginListenerHandle>
+```
+
+Listen for a failed phone verification in enrollment flow.
+
+| Param              | Type                                                                                    |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'mfaEnrollmentVerificationFailed'</code>                                          |
+| **`listenerFunc`** | <code><a href="#mfaverificationfailedlistener">MFAVerificationFailedListener</a></code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+**Since:** 1.3.0
+
+--------------------
+
+
 ### Interfaces
 
 
@@ -1778,39 +1975,76 @@ Remove all listeners for this plugin.
 
 #### User
 
-| Prop                | Type                                                  | Description                                                          | Since |
-| ------------------- | ----------------------------------------------------- | -------------------------------------------------------------------- | ----- |
-| **`displayName`**   | <code>string \| null</code>                           |                                                                      | 0.1.0 |
-| **`email`**         | <code>string \| null</code>                           |                                                                      | 0.1.0 |
-| **`emailVerified`** | <code>boolean</code>                                  |                                                                      | 0.1.0 |
-| **`isAnonymous`**   | <code>boolean</code>                                  |                                                                      | 0.1.0 |
-| **`metadata`**      | <code><a href="#usermetadata">UserMetadata</a></code> | The user's metadata.                                                 | 5.2.0 |
-| **`phoneNumber`**   | <code>string \| null</code>                           |                                                                      | 0.1.0 |
-| **`photoUrl`**      | <code>string \| null</code>                           |                                                                      | 0.1.0 |
-| **`providerData`**  | <code>UserInfo[]</code>                               | Additional per provider such as displayName and profile information. | 5.2.0 |
-| **`providerId`**    | <code>string</code>                                   |                                                                      | 0.1.0 |
-| **`tenantId`**      | <code>string \| null</code>                           |                                                                      | 0.1.0 |
-| **`uid`**           | <code>string</code>                                   |                                                                      | 0.1.0 |
+A user account.
+
+| Prop                | Type                                                  | Description                                                                                                                                                      |
+| ------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`emailVerified`** | <code>boolean</code>                                  | Whether the email has been verified with {@link sendEmailVerification} and {@link applyActionCode}.                                                              |
+| **`isAnonymous`**   | <code>boolean</code>                                  | Whether the user is authenticated using the {@link <a href="#providerid">ProviderId</a>}.ANONYMOUS provider.                                                     |
+| **`metadata`**      | <code><a href="#usermetadata">UserMetadata</a></code> | Additional metadata around user creation and sign-in times.                                                                                                      |
+| **`providerData`**  | <code>UserInfo[]</code>                               | Additional per provider such as displayName and profile information.                                                                                             |
+| **`refreshToken`**  | <code>string</code>                                   | Refresh token used to reauthenticate the user. Avoid using this directly and prefer {@link <a href="#user">User.getIdToken</a>} to refresh the ID token instead. |
+| **`tenantId`**      | <code>string \| null</code>                           | The user's tenant ID.                                                                                                                                            |
+
+| Method               | Signature                                                                                             | Description                                                                                  |
+| -------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **delete**           | () =&gt; Promise&lt;void&gt;                                                                          | Deletes and signs out the user.                                                              |
+| **getIdToken**       | (forceRefresh?: boolean \| undefined) =&gt; Promise&lt;string&gt;                                     | Returns a JSON Web Token (JWT) used to identify the user to a Firebase service.              |
+| **getIdTokenResult** | (forceRefresh?: boolean \| undefined) =&gt; Promise&lt;<a href="#idtokenresult">IdTokenResult</a>&gt; | Returns a deserialized JSON Web Token (JWT) used to identify the user to a Firebase service. |
+| **reload**           | () =&gt; Promise&lt;void&gt;                                                                          | Refreshes the user, if signed in.                                                            |
+| **toJSON**           | () =&gt; object                                                                                       | Returns a JSON-serializable representation of this object.                                   |
+
+
+#### IdTokenResult
+
+Interface representing ID token result obtained from {@link <a href="#user">User.getIdTokenResult</a>}.
+
+| Prop                     | Type                                                | Description                                                                                                                |
+| ------------------------ | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **`authTime`**           | <code>string</code>                                 | The authentication time formatted as a UTC string.                                                                         |
+| **`expirationTime`**     | <code>string</code>                                 | The ID token expiration time formatted as a UTC string.                                                                    |
+| **`issuedAtTime`**       | <code>string</code>                                 | The ID token issuance time formatted as a UTC string.                                                                      |
+| **`signInProvider`**     | <code>string \| null</code>                         | The sign-in provider through which the ID token was obtained (anonymous, custom, phone, password, etc).                    |
+| **`signInSecondFactor`** | <code>string \| null</code>                         | The type of second factor associated with this session, provided the user was multi-factor authenticated (eg. phone, etc). |
+| **`token`**              | <code>string</code>                                 | The Firebase Auth ID token JWT string.                                                                                     |
+| **`claims`**             | <code><a href="#parsedtoken">ParsedToken</a></code> | The entire payload claims of the ID token including the standard reserved claims as well as the custom claims.             |
+
+
+#### ParsedToken
+
+Interface representing a parsed ID token.
+
+| Prop              | Type                                                                                                                                         | Description                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **`'exp'`**       | <code>string</code>                                                                                                                          | Expiration time of the token.                                                       |
+| **`'sub'`**       | <code>string</code>                                                                                                                          | UID of the user.                                                                    |
+| **`'auth_time'`** | <code>string</code>                                                                                                                          | Time at which authentication was performed.                                         |
+| **`'iat'`**       | <code>string</code>                                                                                                                          | Issuance time of the token.                                                         |
+| **`'firebase'`**  | <code>{ sign_in_provider?: string; sign_in_second_factor?: string; identities?: <a href="#record">Record</a>&lt;string, string&gt;; }</code> | Firebase specific claims, containing the provider(s) used to authenticate the user. |
 
 
 #### UserMetadata
 
-| Prop                 | Type                | Description                                                   | Since |
-| -------------------- | ------------------- | ------------------------------------------------------------- | ----- |
-| **`creationTime`**   | <code>number</code> | Time the user was created in milliseconds since the epoch.    | 5.2.0 |
-| **`lastSignInTime`** | <code>number</code> | Time the user last signed in in milliseconds since the epoch. | 5.2.0 |
+Interface representing a user's metadata.
+
+| Prop                 | Type                | Description                   |
+| -------------------- | ------------------- | ----------------------------- |
+| **`creationTime`**   | <code>string</code> | Time the user was created.    |
+| **`lastSignInTime`** | <code>string</code> | Time the user last signed in. |
 
 
 #### UserInfo
 
-| Prop              | Type                        | Description                                                                               | Since |
-| ----------------- | --------------------------- | ----------------------------------------------------------------------------------------- | ----- |
-| **`displayName`** | <code>string \| null</code> | The display name of the user.                                                             | 5.2.0 |
-| **`email`**       | <code>string \| null</code> | The email of the user.                                                                    | 5.2.0 |
-| **`phoneNumber`** | <code>string \| null</code> | The phone number normalized based on the E.164 standard (e.g. +16505550101) for the user. | 5.2.0 |
-| **`photoUrl`**    | <code>string \| null</code> | The profile photo URL of the user.                                                        | 5.2.0 |
-| **`providerId`**  | <code>string</code>         | The provider used to authenticate the user.                                               | 5.2.0 |
-| **`uid`**         | <code>string</code>         | The user's unique ID.                                                                     | 5.2.0 |
+<a href="#user">User</a> profile information, visible only to the Firebase project's apps.
+
+| Prop              | Type                        | Description                                                                               |
+| ----------------- | --------------------------- | ----------------------------------------------------------------------------------------- |
+| **`displayName`** | <code>string \| null</code> | The display name of the user.                                                             |
+| **`email`**       | <code>string \| null</code> | The email of the user.                                                                    |
+| **`phoneNumber`** | <code>string \| null</code> | The phone number normalized based on the E.164 standard (e.g. +16505550101) for the user. |
+| **`photoURL`**    | <code>string \| null</code> | The profile photo URL of the user.                                                        |
+| **`providerId`**  | <code>string</code>         | The provider used to authenticate the user.                                               |
+| **`uid`**         | <code>string</code>         | The user's unique ID, scoped to the project.                                              |
 
 
 #### AuthCredential
@@ -1828,12 +2062,14 @@ Remove all listeners for this plugin.
 
 #### AdditionalUserInfo
 
-| Prop             | Type                                     | Description                                                 | Since |
-| ---------------- | ---------------------------------------- | ----------------------------------------------------------- | ----- |
-| **`isNewUser`**  | <code>boolean</code>                     | Whether the user is new (sign-up) or existing (sign-in).    | 0.5.1 |
-| **`profile`**    | <code>{ [key: string]: unknown; }</code> | Map containing IDP-specific user data.                      | 0.5.1 |
-| **`providerId`** | <code>string</code>                      | Identifier for the provider used to authenticate this user. | 0.5.1 |
-| **`username`**   | <code>string</code>                      | The username if the provider is GitHub or Twitter.          | 0.5.1 |
+A structure containing additional user information from a federated identity provider.
+
+| Prop             | Type                                                                     | Description                                                                              |
+| ---------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| **`isNewUser`**  | <code>boolean</code>                                                     | Whether the user is new (created via sign-up) or existing (authenticated using sign-in). |
+| **`profile`**    | <code><a href="#record">Record</a>&lt;string, unknown&gt; \| null</code> | Map containing IDP-specific user data.                                                   |
+| **`providerId`** | <code>string \| null</code>                                              | Identifier for the provider used to authenticate this user.                              |
+| **`username`**   | <code>string \| null</code>                                              | The username if the provider is GitHub or Twitter.                                       |
 
 
 #### ConfirmVerificationCodeOptions
@@ -1889,14 +2125,14 @@ Remove all listeners for this plugin.
 
 #### GetIdTokenResultResult
 
-| Prop                     | Type                                                             | Description                                                                                                                                      | Since |
-| ------------------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
+| Prop                     | Type                                                             | Description                                                                                                                                            | Since |
+| ------------------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
 | **`authTime`**           | <code>number</code>                                              | The authentication time in milliseconds since the epoch. This is the time the user authenticated (signed in) and not the time the token was refreshed. | 7.4.0 |
 | **`expirationTime`**     | <code>number</code>                                              | The ID token expiration time in milliseconds since the epoch.                                                                                          | 7.4.0 |
 | **`issuedAtTime`**       | <code>number</code>                                              | The ID token issuance time in milliseconds since the epoch.                                                                                            | 7.4.0 |
-| **`signInProvider`**     | <code>string \| null</code>                                      | The sign-in provider through which the ID token was obtained.                                                                                    | 7.4.0 |
-| **`signInSecondFactor`** | <code>string \| null</code>                                      | The type of second factor associated with this session, provided the user was multi-factor authenticated (eg. phone, etc).                       | 7.4.0 |
-| **`claims`**             | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code> | The entire payload claims of the ID token including the standard reserved claims as well as the custom claims.                                   | 7.4.0 |
+| **`signInProvider`**     | <code>string \| null</code>                                      | The sign-in provider through which the ID token was obtained.                                                                                          | 7.4.0 |
+| **`signInSecondFactor`** | <code>string \| null</code>                                      | The type of second factor associated with this session, provided the user was multi-factor authenticated (eg. phone, etc).                             | 7.4.0 |
+| **`claims`**             | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code> | The entire payload claims of the ID token including the standard reserved claims as well as the custom claims.                                         | 7.4.0 |
 
 
 #### GetIdTokenResultOptions
@@ -2190,6 +2426,42 @@ An interface covering the possible persistence mechanism types.
 | **`verificationId`** | <code>string</code> | The verification ID, which is needed to identify the verification code. | 1.3.0 |
 
 
+#### MFAEnrollSecondFactorOptions
+
+| Prop                    | Type                 | Description                                                                                               | Since |
+| ----------------------- | -------------------- | --------------------------------------------------------------------------------------------------------- | ----- |
+| **`recaptchaVerifier`** | <code>unknown</code> | The reCAPTCHA verifier. Must be an instance of `firebase.auth.RecaptchaVerifier`. Only available for Web. | 7.5.0 |
+| **`phoneNumber`**       | <code>string</code>  | The phoneNumber for MFA enrollment.                                                                       |       |
+
+
+#### MultiFactorInfo
+
+A structure containing the information of a second factor entity.
+
+| Prop                 | Type                           | Description                                                         |
+| -------------------- | ------------------------------ | ------------------------------------------------------------------- |
+| **`uid`**            | <code>string</code>            | The multi-factor enrollment ID.                                     |
+| **`displayName`**    | <code>string \| null</code>    | The user friendly name of the current second factor.                |
+| **`enrollmentTime`** | <code>string</code>            | The enrollment date of the second factor formatted as a UTC string. |
+| **`factorId`**       | <code>'phone' \| 'totp'</code> | The identifier of the second factor.                                |
+
+
+#### MFAVerifySecondFactorOptions
+
+| Prop                    | Type                 | Description                                                                                               | Since |
+| ----------------------- | -------------------- | --------------------------------------------------------------------------------------------------------- | ----- |
+| **`recaptchaVerifier`** | <code>unknown</code> | The reCAPTCHA verifier. Must be an instance of `firebase.auth.RecaptchaVerifier`. Only available for Web. | 7.5.0 |
+| **`error`**             | <code>unknown</code> | The MFA error to resolve. Only available for Web.                                                         |       |
+
+
+#### MFAConfirmVerificationOptions
+
+| Prop                 | Type                | Description                                                                                                                               |
+| -------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **`verificationId`** | <code>string</code> | The verification ID received from the `phoneCodeSent` listener. The `smsCode` option must also be provided.                               |
+| **`smsCode`**        | <code>string</code> | The SMS code either received from the `phoneCodeSent` listener or entered by the user. The `verificationId` option must also be provided. |
+
+
 ### Type Aliases
 
 
@@ -2197,9 +2469,7 @@ An interface covering the possible persistence mechanism types.
 
 Construct a type with a set of properties K of type T
 
-<code>{
- [P in K]: T;
- }</code>
+<code>{ [P in K]: T; }</code>
 
 
 #### LinkWithOAuthOptions
@@ -2266,6 +2536,27 @@ Callback to receive notifications of failed phone verification.
 
 
 #### PhoneCodeSentListener
+
+Callback to receive the verification ID.
+
+<code>(event: <a href="#phonecodesentevent">PhoneCodeSentEvent</a>): void</code>
+
+
+#### MFAVerificationCompletedListener
+
+Callback to receive the verification code sent to the user's phone number.
+
+<code>(event: <a href="#phoneverificationcompletedevent">PhoneVerificationCompletedEvent</a>): void</code>
+
+
+#### MFAVerificationFailedListener
+
+Callback to receive notifications of failed MFA verification.
+
+<code>(event: <a href="#phoneverificationfailedevent">PhoneVerificationFailedEvent</a>): void</code>
+
+
+#### MFACodeSentListener
 
 Callback to receive the verification ID.
 

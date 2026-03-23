@@ -14,6 +14,7 @@ Pod::Spec.new do |s|
   s.ios.deployment_target  = '14.0'
   s.dependency 'Capacitor'
   s.dependency 'FirebaseAuth', '~> 11.7.0'
+  s.dependency 'RecaptchaEnterprise'
   s.swift_version = '5.1'
   s.static_framework = true
   s.default_subspec = 'Lite'

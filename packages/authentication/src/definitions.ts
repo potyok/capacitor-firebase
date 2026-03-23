@@ -1,6 +1,7 @@
 /// <reference types="@capacitor/cli" />
 
 import type { PermissionState, PluginListenerHandle } from '@capacitor/core';
+import { MultiFactorInfo } from 'firebase/auth';
 
 declare module '@capacitor/cli' {
   export interface PluginsConfig {
@@ -572,8 +573,150 @@ export interface FirebaseAuthenticationPlugin {
    * @since 0.1.0
    */
   removeAllListeners(): Promise<void>;
+  /**
+   * Start MFA enrollment.
+   * 
+   * @since 7.5.1
+   */
+  enrollSecondFactor(options: MFAEnrollSecondFactorOptions): Promise<void>;
+  /**
+   * Start MFA verification.
+   * 
+   * @since 7.5.1
+   */
+  verifySecondFactor(options: MFAVerifySecondFactorOptions): Promise<{ hint?: MultiFactorInfo }>;
+  /**
+   * Finish MFA verification with confirmation.
+   * 
+   * @since 7.5.1
+   */
+  confirmSmsCode(
+    options: MFAConfirmVerificationOptions
+  ): Promise<void>
+  /**
+   * Finish MFA enrollment with confirmation.
+   * 
+   * @since 7.5.1 
+   */
+  confirmEnrollmentSmsCode(
+    options: MFAConfirmVerificationOptions
+  ): Promise<void>;
+  /**
+   * Listen for a completed MFA verification.
+   *
+   * This listener only fires in two situations:
+   * 1. **Instant verification**: In some cases the phone number can be instantly
+   * verified without needing to send or enter a verification code.
+   * 2. **Auto-retrieval**: On some devices Google Play services can automatically
+   * detect the incoming verification SMS and perform verification without
+   * user action.
+   *
+   * Only available for Android.
+   *
+   * @since 1.3.0
+   */
+  addListener(
+    eventName: 'mfaVerificationCompleted',
+    listenerFunc: MFAVerificationCompletedListener,
+  ): Promise<PluginListenerHandle>;
+  /**
+   * Listen for a failed phone verification.
+   *
+   * @since 1.3.0
+   */
+  addListener(
+    eventName: 'mfaVerificationFailed',
+    listenerFunc: MFAVerificationFailedListener,
+  ): Promise<PluginListenerHandle>;
+  /**
+   * Listen for a MFA verification code.
+   *
+   * @since 1.3.0
+   */
+  addListener(
+    eventName: 'mfaCodeSent',
+    listenerFunc: MFACodeSentListener,
+  ): Promise<PluginListenerHandle>;
+  /**
+  * Listen for a completed MFA enrollment verification.
+  *
+  * This listener only fires in two situations:
+  * 1. **Instant verification**: In some cases the phone number can be instantly
+  * verified without needing to send or enter a verification code.
+  * 2. **Auto-retrieval**: On some devices Google Play services can automatically
+  * detect the incoming verification SMS and perform verification without
+  * user action.
+  *
+  * Only available for Android.
+  *
+  * @since 1.3.0
+  */
+  addListener(
+    eventName: 'mfaEnrollmentVerificationCompleted',
+    listenerFunc: MFAVerificationCompletedListener,
+  ): Promise<PluginListenerHandle>;
+  /**
+   * Listen for a failed phone verification in enrollment flow.
+   *
+   * @since 1.3.0
+   */
+  addListener(
+    eventName: 'mfaEnrollmentVerificationFailed',
+    listenerFunc: MFAVerificationFailedListener,
+  ): Promise<PluginListenerHandle>;
 }
 
+export interface MFAEnrollSecondFactorOptions {
+  /**
+   * The reCAPTCHA verifier.
+   * Must be an instance of `firebase.auth.RecaptchaVerifier`.
+   *
+   * Only available for Web.
+   *
+   * @since 7.5.0
+   */
+  recaptchaVerifier?: unknown;
+  /**
+   * The phoneNumber for MFA enrollment.
+   * 
+   */
+  phoneNumber: string;
+}
+
+export interface MFAVerifySecondFactorOptions {
+  /**
+   * The reCAPTCHA verifier.
+   * Must be an instance of `firebase.auth.RecaptchaVerifier`.
+   *
+   * Only available for Web.
+   *
+   * @since 7.5.0
+   */
+  recaptchaVerifier?: unknown;
+  /**
+   * The MFA error to resolve.
+   * 
+   * Only available for Web.
+   */
+  error?: unknown;
+}
+/**
+ * @since 7.5.0
+ */
+export interface MFAConfirmVerificationOptions {
+  /**
+   * The verification ID received from the `phoneCodeSent` listener.
+   * 
+   * The `smsCode` option must also be provided.
+   */
+  verificationId: string;
+  /**
+   * The SMS code either received from the `phoneCodeSent` listener or entered by the user.
+   * 
+   * The `verificationId` option must also be provided.
+   */
+  smsCode: string;
+}
 /**
  * @since 0.2.2
  */
@@ -1595,7 +1738,14 @@ export interface AuthStateChange {
 export type PhoneVerificationCompletedListener = (
   event: PhoneVerificationCompletedEvent,
 ) => void;
-
+/**
+ * Callback to receive the verification code sent to the user's phone number.
+ *
+ * @since 1.3.0
+ */
+export type MFAVerificationCompletedListener = (
+  event: PhoneVerificationCompletedEvent,
+) => void;
 /**
  * @since 5.0.0
  */
@@ -1618,7 +1768,14 @@ export interface PhoneVerificationCompletedEvent extends SignInResult {
 export type PhoneVerificationFailedListener = (
   event: PhoneVerificationFailedEvent,
 ) => void;
-
+/**
+ * Callback to receive notifications of failed MFA verification.
+ *
+ * @since 1.3.0
+ */
+export type MFAVerificationFailedListener = (
+  event: PhoneVerificationFailedEvent,
+) => void;
 /**
  * @since 5.0.0
  */
@@ -1637,7 +1794,12 @@ export interface PhoneVerificationFailedEvent {
  * @since 1.3.0
  */
 export type PhoneCodeSentListener = (event: PhoneCodeSentEvent) => void;
-
+/**
+ * Callback to receive the verification ID.
+ *
+ * @since 1.3.0
+ */
+export type MFACodeSentListener = (event: PhoneCodeSentEvent) => void;
 /**
  * @since 5.0.0
  */

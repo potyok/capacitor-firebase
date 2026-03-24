@@ -47,6 +47,7 @@ public class PhoneMFAHandler {
                 .setMultiFactorSession(multiFactorResolver.getSession())
                 .setMultiFactorHint(phoneHint)
                 .setCallbacks(createCallbacks())
+                .setActivity(pluginImplementation.getPlugin().getActivity())
                 .setTimeout(30L, TimeUnit.SECONDS)
                 .requireSmsValidation(true)
                 .build());
@@ -95,6 +96,7 @@ public class PhoneMFAHandler {
                 .setTimeout(30L, TimeUnit.SECONDS)
                 .requireSmsValidation(true)
                 .setMultiFactorSession(multiFactorSession)
+                .setActivity(pluginImplementation.getPlugin().getActivity())
                 .setCallbacks(createEnrollmentCallbacks())
                 .build();
         PhoneAuthProvider.verifyPhoneNumber(phoneAuthOptions);

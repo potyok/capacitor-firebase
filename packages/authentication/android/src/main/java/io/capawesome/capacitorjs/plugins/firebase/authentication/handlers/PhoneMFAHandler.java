@@ -91,7 +91,7 @@ public class PhoneMFAHandler {
             @NonNull String phoneNumber
             ) {
         PhoneAuthOptions phoneAuthOptions =
-            PhoneAuthOptions.newBuilder()
+            PhoneAuthOptions.newBuilder(pluginImplementation.getFirebaseAuthInstance())
                 .setPhoneNumber(phoneNumber)
                 .setTimeout(30L, TimeUnit.SECONDS)
                 .requireSmsValidation(true)

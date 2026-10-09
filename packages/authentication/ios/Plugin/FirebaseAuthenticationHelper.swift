@@ -198,6 +198,19 @@ public class FirebaseAuthenticationHelper {
         return result
     }
 
+    public static func createMultiFactorHintResult(_ hintData: MultiFactorInfo) -> JSObject {
+        var result = JSObject()
+        var hint = JSObject()
+        hint["displayName"] = hintData.displayName ?? ""
+        hint["factorId"] = hintData.factorID
+        hint["uid"] = hintData.uid
+        if let phoneInfo = hintData as? PhoneMultiFactorInfo {
+            hint["phoneNumber"] = phoneInfo.phoneNumber
+        }
+        result["hint"] = hint
+        return result
+    }
+
     private static func convertErrorCodeToString(errorCode: Int) -> String? {
         let errorCodes: [Int: String] = [
             AuthErrorCode.invalidCustomToken.rawValue: "invalid-custom-token",
@@ -256,7 +269,8 @@ public class FirebaseAuthenticationHelper {
             AuthErrorCode.nullUser.rawValue: "null-user",
             AuthErrorCode.keychainError.rawValue: "keychain-error",
             AuthErrorCode.internalError.rawValue: "internal-error",
-            AuthErrorCode.malformedJWT.rawValue: "malformed-jwt"
+            AuthErrorCode.malformedJWT.rawValue: "malformed-jwt",
+            AuthErrorCode.secondFactorRequired.rawValue: "second-factor-required"
         ]
 
         return errorCodes[errorCode]

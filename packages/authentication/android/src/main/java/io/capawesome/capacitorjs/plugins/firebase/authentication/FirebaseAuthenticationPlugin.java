@@ -15,6 +15,8 @@ import com.google.firebase.auth.ActionCodeSettings;
 import com.google.firebase.auth.FirebaseUser;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.ConfirmVerificationCodeOptions;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.LinkWithPhoneNumberOptions;
+import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.MFAEnrollmentVerificationCompletedEvent;
+import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.MFAVerificationCompletedEvent;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.PhoneVerificationCompletedEvent;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.SignInWithPhoneNumberOptions;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.options.FetchSignInMethodsForEmailOptions;
@@ -35,6 +37,11 @@ public class FirebaseAuthenticationPlugin extends Plugin {
     public static final String PHONE_VERIFICATION_COMPLETED_EVENT = "phoneVerificationCompleted";
     public static final String PHONE_VERIFICATION_FAILED_EVENT = "phoneVerificationFailed";
     public static final String PHONE_CODE_SENT_EVENT = "phoneCodeSent";
+    public static final String MFA_VERIFICATION_COMPLETED_EVENT = "mfaVerificationCompleted";
+    public static final String MFA_VERIFICATION_FAILED_EVENT = "mfaVerificationFailed";
+    public static final String MFA_CODE_SENT_EVENT = "mfaCodeSent";
+    public static final String MFA_ENROLLMENT_VERIFICATION_COMPLETED_EVENT = "mfaEnrollmentVerificationCompleted";
+    public static final String MFA_ENROLLMENT_VERIFICATION_FAILED_EVENT = "mfaEnrollmentVerificationFailed";
     public static final String ERROR_PROVIDER_ID_MISSING = "providerId must be provided.";
     public static final String ERROR_NO_USER_SIGNED_IN = "No user is signed in.";
     public static final String ERROR_TOKEN_MISSING = "token must be provided.";
@@ -64,6 +71,9 @@ public class FirebaseAuthenticationPlugin extends Plugin {
         "signInAnonymously cannot be used in combination with skipNativeAuth.";
     public static final String AUTH_STATE_CHANGE_EVENT = "authStateChange";
     public static final String ID_TOKEN_CHANGE_EVENT = "idTokenChange";
+    public static final String ERROR_MULTIFACTOR_RESOLVER_IS_NULL = "MultifactorResolver must be provided.";
+    public static final String ERROR_MULTIFACTOR_RESOLVER_INVALID_HINT_INDEX = "MultifactorResolver hint index is invalid.";
+    public static final String ERROR_MULTIFACTOR_RESOLVER_INVALID_HINT_TYPE = "MultifactorResolver hint type is invalid.";
 
     private FirebaseAuthenticationConfig config;
     private FirebaseAuthentication implementation;
@@ -691,6 +701,52 @@ public class FirebaseAuthenticationPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void enrollSecondFactor(PluginCall call) {
+        try {
+            implementation.enrollSecondFactor(call);
+        } catch (Exception exception) {
+            Logger.error(TAG, exception.getMessage(), exception);
+            String code = FirebaseAuthenticationHelper.createErrorCode(exception);
+            call.reject(exception.getMessage(), code);
+        }
+    }
+
+    @PluginMethod
+    public void verifySecondFactor(PluginCall call) {
+        try {
+            implementation.verifySecondFactor(call);
+        } catch (Exception exception) {
+            Logger.error(TAG, exception.getMessage(), exception);
+            String code = FirebaseAuthenticationHelper.createErrorCode(exception);
+            call.reject(exception.getMessage(), code);
+        }
+    }
+
+    @PluginMethod
+    public void confirmSmsCode(PluginCall call) {
+        try {
+            implementation.confirmSmsCode(call);
+            call.resolve();
+        } catch (Exception exception) {
+            Logger.error(TAG, exception.getMessage(), exception);
+            String code = FirebaseAuthenticationHelper.createErrorCode(exception);
+            call.reject(exception.getMessage(), code);
+        }
+    }
+
+    @PluginMethod
+    public void confirmEnrollmentSmsCode(PluginCall call) {
+        try {
+            implementation.confirmEnrollmentSmsCode(call);
+            call.resolve();
+        } catch (Exception exception) {
+            Logger.error(TAG, exception.getMessage(), exception);
+            String code = FirebaseAuthenticationHelper.createErrorCode(exception);
+            call.reject(exception.getMessage(), code);
+        }
+    }
+
+    @PluginMethod
     public void signInWithEmailLink(PluginCall call) {
         try {
             implementation.signInWithEmailLink(call);
@@ -1007,6 +1063,35 @@ public class FirebaseAuthenticationPlugin extends Plugin {
         JSObject result = new JSObject();
         result.put("verificationId", verificationId);
         notifyListeners(PHONE_CODE_SENT_EVENT, result, true);
+    }
+
+    public void handleMFAVerificationCompleted(@NonNull final MFAVerificationCompletedEvent event) {
+        notifyListeners(MFA_VERIFICATION_COMPLETED_EVENT, event.toJSObject(), true);
+    }
+
+    public void handleMFAVerificationFailed(Exception exception) {
+        Logger.error(TAG, exception.getMessage(), exception);
+        JSObject result = new JSObject();
+        result.put("message", exception.getMessage());
+        notifyListeners(MFA_VERIFICATION_FAILED_EVENT, result, true);
+    }
+
+    public void handleMFACodeSent(String verificationId) {
+        JSObject result = new JSObject();
+        result.put("verificationId", verificationId);
+        notifyListeners(MFA_CODE_SENT_EVENT, result, true);
+    }
+
+    public void handleMFAEnrollmentVerificationCompleted(@NonNull final MFAEnrollmentVerificationCompletedEvent event) {
+        JSObject result = event.toJSObject();
+        notifyListeners(MFA_ENROLLMENT_VERIFICATION_COMPLETED_EVENT, result, true);
+    }
+
+    public void handleMFAEnrollmentVerificationFailed(Exception exception) {
+        Logger.error(TAG, exception.getMessage(), exception);
+        JSObject result = new JSObject();
+        result.put("message", exception.getMessage());
+        notifyListeners(MFA_ENROLLMENT_VERIFICATION_FAILED_EVENT, result, true);
     }
 
     @Override

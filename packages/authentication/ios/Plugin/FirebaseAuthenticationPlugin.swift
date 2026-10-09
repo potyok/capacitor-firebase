@@ -71,7 +71,11 @@ public class FirebaseAuthenticationPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "useEmulator", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "verifyBeforeUpdateEmail", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "requestAppTrackingTransparencyPermission", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "checkAppTrackingTransparencyPermission", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "checkAppTrackingTransparencyPermission", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "verifySecondFactor", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "confirmSmsCode", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "enrollSecondFactor", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "confirmEnrollmentSmsCode", returnType: CAPPluginReturnPromise)
     ]
     public let tag = "FirebaseAuthentication"
     public let errorProviderIdMissing = "providerId must be provided."
@@ -98,10 +102,19 @@ public class FirebaseAuthenticationPlugin: CAPPlugin, CAPBridgedPlugin {
     public let errorSignInAnonymouslySkipNativeAuth =
         "signInAnonymously cannot be used in combination with skipNativeAuth."
     public let errorDeviceUnsupported = "Device is not supported. At least iOS 13 is required."
+    public let errorMFAResolverIsNil = "MultifactorResolver must be provided."
+    public let errorMFAResolverInvalidHintIndex = "MultifactorResolver hint index is invalid."
+    public let errorMFAResolverInvalidHintType = "MultifactorResolver hint type is invalid."
+    public let errorMFAEnrollmentSession = "Enrollment session has a problem."
     public let authStateChangeEvent = "authStateChange"
     public let idTokenChangeEvent = "idTokenChange"
     public let phoneVerificationFailedEvent = "phoneVerificationFailed"
     public let phoneCodeSentEvent = "phoneCodeSent"
+    public let mfaVerificationFailedEvent = "mfaVerificationFailed"
+    public let mfaVerificationCompletedEvent = "mfaVerificationCompleted"
+    public let mfaCodeSentEvent = "mfaCodeSent"
+    public let mfaEnrollmentVerificationFailedEvent = "mfaEnrollmentVerificationFailed"
+    public let mfaEnrollmentVerificationCompletedEvent = "mfaEnrollmentVerificationCompleted"
     private var implementation: FirebaseAuthentication?
 
     override public func load() {
@@ -688,6 +701,22 @@ public class FirebaseAuthenticationPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    @objc func verifySecondFactor(_ call: CAPPluginCall) {
+        implementation?.verifySecondFactor(call)
+    }
+
+    @objc func confirmSmsCode(_ call: CAPPluginCall) {
+        implementation?.confirmSmsCode(call)
+    }
+
+    @objc func enrollSecondFactor(_ call: CAPPluginCall) {
+        implementation?.enrollSecondFactor(call)
+    }
+
+    @objc func confirmEnrollmentSmsCode(_ call: CAPPluginCall) {
+        implementation?.confirmEnrollmentSmsCode(call)
+    }
+
     @objc func handleAuthStateChange() {
         let user = implementation?.getCurrentUser()
         let userResult = FirebaseAuthenticationHelper.createUserResult(user)
@@ -719,6 +748,34 @@ public class FirebaseAuthenticationPlugin: CAPPlugin, CAPBridgedPlugin {
         var result = JSObject()
         result["verificationId"] = verificationId
         notifyListeners(phoneCodeSentEvent, data: result, retainUntilConsumed: true)
+    }
+
+    @objc func handleMFAVerificationFailed(_ error: Error) {
+        CAPLog.print("[", self.tag, "] ", error)
+        var result = JSObject()
+        result["message"] = error.localizedDescription
+        notifyListeners(mfaVerificationFailedEvent, data: result, retainUntilConsumed: true)
+    }
+
+    func handleMFAVerificationCompleted(_ result: JSObject) {
+        notifyListeners(mfaVerificationCompletedEvent, data: result, retainUntilConsumed: true)
+    }
+
+    @objc func handleMFACodeSent(_ verificationId: String) {
+        var result = JSObject()
+        result["verificationId"] = verificationId
+        notifyListeners(mfaCodeSentEvent, data: result, retainUntilConsumed: true)
+    }
+
+    @objc func handleMFAEnrollmentVerificationFailed(_ error: Error) {
+        CAPLog.print("[", self.tag, "] ", error)
+        var result = JSObject()
+        result["message"] = error.localizedDescription
+        notifyListeners(mfaEnrollmentVerificationFailedEvent, data: result, retainUntilConsumed: true)
+    }
+
+    func handleMFAEnrollmentVerificationCompleted(_ result: JSObject) {
+        notifyListeners(mfaEnrollmentVerificationCompletedEvent, data: result, retainUntilConsumed: true)
     }
 
     private func rejectCallAsUnavailable(_ call: CAPPluginCall) {

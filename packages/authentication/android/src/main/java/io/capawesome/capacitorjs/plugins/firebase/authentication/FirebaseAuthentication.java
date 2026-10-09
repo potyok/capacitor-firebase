@@ -3,7 +3,6 @@ package io.capawesome.capacitorjs.plugins.firebase.authentication;
 import static io.capawesome.capacitorjs.plugins.firebase.authentication.FirebaseAuthenticationPlugin.ERROR_NO_USER_SIGNED_IN;
 import static io.capawesome.capacitorjs.plugins.firebase.authentication.FirebaseAuthenticationPlugin.TAG;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import androidx.activity.result.ActivityResult;
@@ -15,9 +14,6 @@ import androidx.annotation.Nullable;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Logger;
 import com.getcapacitor.PluginCall;
-import com.google.android.gms.auth.api.identity.AuthorizationResult;
-import com.google.android.gms.auth.api.identity.Identity;
-import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.ActionCodeSettings;
 import com.google.firebase.auth.AdditionalUserInfo;
@@ -25,14 +21,21 @@ import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthMultiFactorException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GetTokenResult;
+import com.google.firebase.auth.MultiFactorInfo;
+import com.google.firebase.auth.MultiFactorResolver;
+import com.google.firebase.auth.MultiFactorSession;
+import com.google.firebase.auth.PhoneMultiFactorInfo;
 import com.google.firebase.auth.UserProfileChangeRequest;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.FirebaseAuthenticationHelper.ProviderId;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.ConfirmVerificationCodeOptions;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.GetIdTokenResult;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.GetIdTokenResultResult;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.LinkWithPhoneNumberOptions;
+import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.MFAEnrollmentVerificationCompletedEvent;
+import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.MFAVerificationCompletedEvent;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.PhoneVerificationCompletedEvent;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.SignInOptions;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.SignInResult;
@@ -47,6 +50,7 @@ import io.capawesome.capacitorjs.plugins.firebase.authentication.handlers.Facebo
 import io.capawesome.capacitorjs.plugins.firebase.authentication.handlers.GoogleAuthProviderHandler;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.handlers.OAuthProviderHandler;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.handlers.PhoneAuthProviderHandler;
+import io.capawesome.capacitorjs.plugins.firebase.authentication.handlers.PhoneMFAHandler;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.handlers.PlayGamesAuthProviderHandler;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.interfaces.EmptyResultCallback;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.interfaces.NonEmptyResultCallback;
@@ -79,6 +83,9 @@ public class FirebaseAuthentication {
     @Nullable
     private PlayGamesAuthProviderHandler playGamesAuthProviderHandler;
 
+    private MultiFactorResolver multiFactorResolver;
+    private final PhoneMFAHandler phoneMFAHandler;
+
     public FirebaseAuthentication(FirebaseAuthenticationPlugin plugin, FirebaseAuthenticationConfig config) {
         this.plugin = plugin;
         this.config = config;
@@ -94,6 +101,7 @@ public class FirebaseAuthentication {
         if (config.getAuthDomain() != null && !config.getAuthDomain().isEmpty()) {
             getFirebaseAuthInstance().setCustomAuthDomain(config.getAuthDomain());
         }
+        this.phoneMFAHandler = new PhoneMFAHandler(this);
     }
 
     public void applyActionCode(@NonNull String oobCode, @NonNull Runnable callback) {
@@ -476,11 +484,93 @@ public class FirebaseAuthentication {
                     call.resolve(signInResult);
                 } else {
                     Exception exception = task.getException();
+                    if (exception instanceof FirebaseAuthMultiFactorException e) {
+                        multiFactorResolver = e.getResolver();
+                    }
                     Logger.error(TAG, exception.getMessage(), exception);
                     String code = FirebaseAuthenticationHelper.createErrorCode(exception);
                     call.reject(exception.getMessage(), code);
                 }
             });
+    }
+
+    public void enrollSecondFactor(final PluginCall call) {
+        String phoneNumber = call.getString("phoneNumber", "");
+        FirebaseUser user = getCurrentUser();
+        if (user != null) {
+            user
+                .getMultiFactor()
+                .getSession()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        MultiFactorSession multiFactorSession = task.getResult();
+                        phoneMFAHandler.enrollSecondFactor(multiFactorSession, phoneNumber);
+                        call.resolve();
+                    } else {
+                        Exception exception = task.getException();
+                        Logger.error(TAG, exception.getMessage(), exception);
+                        String code = FirebaseAuthenticationHelper.createErrorCode(exception);
+                        call.reject(exception.getMessage(), code);
+                    }
+                });
+        } else {
+            call.reject(ERROR_NO_USER_SIGNED_IN);
+        }
+    }
+
+    public void verifySecondFactor(final PluginCall call) {
+        if (multiFactorResolver == null) {
+            call.reject(FirebaseAuthenticationPlugin.ERROR_MULTIFACTOR_RESOLVER_IS_NULL);
+            return;
+        }
+
+        int hintIndex = call.getInt("hintIndex", 0);
+        List<MultiFactorInfo> hints = multiFactorResolver.getHints();
+
+        if (hintIndex < 0 || hintIndex >= hints.size()) {
+            call.reject(FirebaseAuthenticationPlugin.ERROR_MULTIFACTOR_RESOLVER_INVALID_HINT_INDEX);
+            return;
+        }
+
+        MultiFactorInfo selectedHint = hints.get(hintIndex);
+        if (selectedHint instanceof PhoneMultiFactorInfo phoneHint) {
+            phoneMFAHandler.verifySecondFactor(phoneHint, multiFactorResolver);
+            call.resolve(FirebaseAuthenticationHelper.createMultiFactorHintResult(selectedHint));
+        } else {
+            call.reject(FirebaseAuthenticationPlugin.ERROR_MULTIFACTOR_RESOLVER_INVALID_HINT_TYPE);
+        }
+    }
+
+    public void confirmSmsCode(final PluginCall call) {
+        if (multiFactorResolver == null) {
+            call.reject(FirebaseAuthenticationPlugin.ERROR_MULTIFACTOR_RESOLVER_IS_NULL);
+            return;
+        }
+        String verificationId = call.getString("verificationId", "");
+        String smsCode = call.getString("smsCode", "");
+        NonEmptyResultCallback<SignInResult> callback = phoneMFAHandler.createMFAVerificationCompletedCallback(smsCode);
+        handleConfirmSmsCode(verificationId, smsCode, callback);
+        call.resolve();
+    }
+
+    public void confirmEnrollmentSmsCode(final PluginCall call) {
+        String verificationId = call.getString("verificationId", "");
+        String smsCode = call.getString("smsCode", "");
+        EmptyResultCallback callback = phoneMFAHandler.createEnrollmentVerificationCompletedCallback(smsCode);
+        handleConfirmEnrollmentSmsCode(verificationId, smsCode, callback);
+        call.resolve();
+    }
+
+    public void handleConfirmSmsCode(@Nullable String verificationId, @Nullable String smsCode, @NonNull NonEmptyResultCallback callback) {
+        phoneMFAHandler.confirmSmsCode(multiFactorResolver, verificationId, smsCode, callback);
+    }
+
+    public void handleConfirmEnrollmentSmsCode(
+        @Nullable String verificationId,
+        @Nullable String smsCode,
+        @NonNull EmptyResultCallback callback
+    ) {
+        phoneMFAHandler.confirmEnrollmentSmsCode(verificationId, smsCode, callback);
     }
 
     public void signInWithEmailLink(final PluginCall call) {
@@ -952,6 +1042,26 @@ public class FirebaseAuthentication {
 
     public void handlePhoneCodeSent(String verificationId) {
         plugin.handlePhoneCodeSent(verificationId);
+    }
+
+    public void handleMFAVerificationCompleted(@NonNull final MFAVerificationCompletedEvent event) {
+        plugin.handleMFAVerificationCompleted(event);
+    }
+
+    public void handleMFAVerificationFailed(Exception exception) {
+        plugin.handleMFAVerificationFailed(exception);
+    }
+
+    public void handleMFACodeSent(String verificationId) {
+        plugin.handleMFACodeSent(verificationId);
+    }
+
+    public void handleMFAEnrollmentVerificationCompleted(@NonNull final MFAEnrollmentVerificationCompletedEvent event) {
+        plugin.handleMFAEnrollmentVerificationCompleted(event);
+    }
+
+    public void handleMFAEnrollmentVerificationFailed(Exception exception) {
+        plugin.handleMFAEnrollmentVerificationFailed(exception);
     }
 
     public FirebaseAuth getFirebaseAuthInstance() {

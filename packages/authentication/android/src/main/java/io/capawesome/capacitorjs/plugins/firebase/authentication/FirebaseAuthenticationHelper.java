@@ -11,7 +11,9 @@ import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.FirebaseUserMetadata;
+import com.google.firebase.auth.MultiFactorInfo;
 import com.google.firebase.auth.OAuthCredential;
+import com.google.firebase.auth.PhoneMultiFactorInfo;
 import com.google.firebase.auth.UserInfo;
 import java.util.List;
 import java.util.Map;
@@ -221,6 +223,22 @@ public class FirebaseAuthenticationHelper {
             userInfoResult.put("uid", userInfo.getUid());
             result.put(userInfoResult);
         }
+        return result;
+    }
+
+    public static JSObject createMultiFactorHintResult(MultiFactorInfo multiFactorInfo) {
+        JSObject result = new JSObject();
+        JSObject hint = new JSObject();
+        if (multiFactorInfo != null) {
+            hint.put("displayName", multiFactorInfo.getDisplayName());
+            hint.put("factorId", multiFactorInfo.getFactorId());
+            if (multiFactorInfo instanceof PhoneMultiFactorInfo) {
+                String phoneNumber = ((PhoneMultiFactorInfo) multiFactorInfo).getPhoneNumber();
+                hint.put("phoneNumber", phoneNumber);
+            }
+        }
+
+        result.put("hint", hint);
         return result;
     }
 

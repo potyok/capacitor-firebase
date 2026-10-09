@@ -13,7 +13,8 @@ let package = Package(
         .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", from: "8.0.0"),
         .package(url: "https://github.com/firebase/firebase-ios-sdk.git", .upToNextMajor(from: "12.7.0")),
         .package(url: "https://github.com/google/GoogleSignIn-iOS", from: "9.0.0"),
-        .package(url: "https://github.com/facebook/facebook-ios-sdk.git", from: "18.0.0")
+        .package(url: "https://github.com/facebook/facebook-ios-sdk.git", from: "18.0.0"),
+        .package(url: "https://github.com/GoogleCloudPlatform/recaptcha-enterprise-mobile-sdk.git", from: "18.0.0")
     ],
     targets: [
         .target(
@@ -25,7 +26,8 @@ let package = Package(
                 .product(name: "FirebaseCore", package: "firebase-ios-sdk"),
                 .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS"),
                 .product(name: "FacebookCore", package: "facebook-ios-sdk"),
-                .product(name: "FacebookLogin", package: "facebook-ios-sdk")
+                .product(name: "FacebookLogin", package: "facebook-ios-sdk"),
+                .product(name: "RecaptchaEnterprise", package: "recaptcha-enterprise-mobile-sdk")
             ],
             path: "ios/Plugin",
             swiftSettings: [

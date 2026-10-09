@@ -16,12 +16,15 @@ public typealias AuthStateChangedObserver = () -> Void
     private var googleAuthProviderHandler: GoogleAuthProviderHandler?
     private var oAuthProviderHandler: OAuthProviderHandler?
     private var phoneAuthProviderHandler: PhoneAuthProviderHandler?
+    private var phoneMFAHandler: PhoneMFAHandler!
     private var savedCall: CAPPluginCall?
+    private var savedResolver: MultiFactorResolver?
 
     init(plugin: FirebaseAuthenticationPlugin, config: FirebaseAuthenticationConfig) {
         self.plugin = plugin
         self.config = config
         super.init()
+        self.phoneMFAHandler = PhoneMFAHandler(self)
         if FirebaseApp.app() == nil {
             FirebaseApp.configure()
         }
@@ -427,6 +430,10 @@ public typealias AuthStateChangedObserver = () -> Void
         self.savedCall = call
         Auth.auth().signIn(withEmail: email, password: password) { _, error in
             if let error = error {
+                let authError = error as NSError
+                if authError.code == AuthErrorCode.secondFactorRequired.rawValue {
+                    self.savedResolver = authError.userInfo[AuthErrorUserInfoMultiFactorResolverKey] as? MultiFactorResolver
+                }
                 self.handleFailedSignIn(message: nil, error: error)
                 return
             }
@@ -438,6 +445,73 @@ public typealias AuthStateChangedObserver = () -> Void
                                                                          accessToken: nil, additionalUserInfo: nil)
             savedCall.resolve(result)
         }
+    }
+
+    @objc func enrollSecondFactor(_ call: CAPPluginCall) {
+        let phoneNumber = call.getString("phoneNumber", "")
+        guard let user = self.getCurrentUser() else {
+            call.reject(plugin.errorNoUserSignedIn)
+            return
+        }
+
+        user.multiFactor.getSessionWithCompletion { session, error in
+            guard let session = session, error == nil else {
+                call.reject(self.plugin.errorMFAEnrollmentSession)
+                return
+            }
+            let options = EnrollSecondFactorOptions(session: session, phoneNumber: phoneNumber)
+            self.phoneMFAHandler.enrollSecondFactor(options)
+            call.resolve()
+        }
+    }
+
+    @objc func verifySecondFactor(_ call: CAPPluginCall) {
+        guard let savedResolver = self.savedResolver else {
+            call.reject(plugin.errorMFAResolverIsNil)
+            return
+        }
+
+        let hintIndex = call.getInt("hintIndex", 0)
+        let hints = savedResolver.hints
+
+        if hintIndex < 0 || hintIndex >= hints.count {
+            call.reject(plugin.errorMFAResolverInvalidHintIndex)
+            return
+        }
+
+        if let selectedHint = hints[hintIndex] as? PhoneMultiFactorInfo {
+            let options = VerifySecondFactorOptions(resolver: savedResolver, hint: selectedHint)
+            self.phoneMFAHandler.verifySecondFactor(options)
+            call.resolve(FirebaseAuthenticationHelper.createMultiFactorHintResult(selectedHint))
+        } else {
+            call.reject(plugin.errorMFAResolverInvalidHintType)
+        }
+    }
+
+    @objc func confirmSmsCode(_ call: CAPPluginCall) {
+        guard let savedResolver = self.savedResolver else {
+            call.reject(plugin.errorMFAResolverIsNil)
+            return
+        }
+
+        let verificationId = call.getString("verificationId", "")
+        let smsCode = call.getString("smsCode", "")
+        let options = ConfirmSmsCodeOptions(verificationId: verificationId, verificationCode: smsCode, resolver: savedResolver)
+        self.phoneMFAHandler.confirmSmsCode(options)
+        call.resolve()
+    }
+
+    @objc func confirmEnrollmentSmsCode(_ call: CAPPluginCall) {
+        guard let user = self.getCurrentUser() else {
+            call.reject(plugin.errorNoUserSignedIn)
+            return
+        }
+
+        let verificationId = call.getString("verificationId", "")
+        let smsCode = call.getString("smsCode", "")
+        let options = ConfirmEnrollmentSmsCodeOptions(verificationId: verificationId, verificationCode: smsCode, user: user)
+        self.phoneMFAHandler.confirmEnrollmentSmsCode(options)
+        call.resolve()
     }
 
     @objc func signInWithEmailLink(_ call: CAPPluginCall) {
@@ -698,6 +772,26 @@ public typealias AuthStateChangedObserver = () -> Void
 
     func handlePhoneCodeSent(_ verificationId: String) {
         plugin.handlePhoneCodeSent(verificationId)
+    }
+
+    func handleMFAVerificationFailed(_ error: Error) {
+        plugin.handleMFAVerificationFailed(error)
+    }
+
+    func handleMFAVerificationCompleted(_ result: JSObject) {
+        plugin.handleMFAVerificationCompleted(result)
+    }
+
+    func handleMFACodeSent(_ verificationId: String) {
+        plugin.handleMFACodeSent(verificationId)
+    }
+
+    func handleMFAEnrollmentVerificationFailed(_ error: Error) {
+        plugin.handleMFAEnrollmentVerificationFailed(error)
+    }
+
+    func handleMFAEnrollmentVerificationCompleted(_ result: JSObject) {
+        plugin.handleMFAEnrollmentVerificationCompleted(result)
     }
 
     func getPlugin() -> FirebaseAuthenticationPlugin {

@@ -525,11 +525,20 @@ const verifyBeforeUpdateEmail = async () => {
 * [`verifyBeforeUpdateEmail(...)`](#verifybeforeupdateemail)
 * [`checkAppTrackingTransparencyPermission()`](#checkapptrackingtransparencypermission)
 * [`requestAppTrackingTransparencyPermission()`](#requestapptrackingtransparencypermission)
+* [`enrollSecondFactor(...)`](#enrollsecondfactor)
+* [`verifySecondFactor(...)`](#verifysecondfactor)
+* [`confirmSmsCode(...)`](#confirmsmscode)
+* [`confirmEnrollmentSmsCode(...)`](#confirmenrollmentsmscode)
 * [`addListener('authStateChange', ...)`](#addlistenerauthstatechange-)
 * [`addListener('idTokenChange', ...)`](#addlisteneridtokenchange-)
 * [`addListener('phoneVerificationCompleted', ...)`](#addlistenerphoneverificationcompleted-)
 * [`addListener('phoneVerificationFailed', ...)`](#addlistenerphoneverificationfailed-)
 * [`addListener('phoneCodeSent', ...)`](#addlistenerphonecodesent-)
+* [`addListener('mfaVerificationCompleted', ...)`](#addlistenermfaverificationcompleted-)
+* [`addListener('mfaVerificationFailed', ...)`](#addlistenermfaverificationfailed-)
+* [`addListener('mfaCodeSent', ...)`](#addlistenermfacodesent-)
+* [`addListener('mfaEnrollmentVerificationCompleted', ...)`](#addlistenermfaenrollmentverificationcompleted-)
+* [`addListener('mfaEnrollmentVerificationFailed', ...)`](#addlistenermfaenrollmentverificationfailed-)
 * [`removeAllListeners()`](#removealllisteners)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
@@ -1652,6 +1661,76 @@ Only available on iOS.
 --------------------
 
 
+### enrollSecondFactor(...)
+
+```typescript
+enrollSecondFactor(options: MFAEnrollSecondFactorOptions) => Promise<void>
+```
+
+Start MFA enrollment.
+
+| Param         | Type                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#mfaenrollsecondfactoroptions">MFAEnrollSecondFactorOptions</a></code> |
+
+**Since:** 7.5.1
+
+--------------------
+
+
+### verifySecondFactor(...)
+
+```typescript
+verifySecondFactor(options: MFAVerifySecondFactorOptions) => Promise<{ hint?: MultiFactorInfo; }>
+```
+
+Start MFA verification.
+
+| Param         | Type                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#mfaverifysecondfactoroptions">MFAVerifySecondFactorOptions</a></code> |
+
+**Returns:** <code>Promise&lt;{ hint?: MultiFactorInfo; }&gt;</code>
+
+**Since:** 7.5.1
+
+--------------------
+
+
+### confirmSmsCode(...)
+
+```typescript
+confirmSmsCode(options: MFAConfirmVerificationOptions) => Promise<void>
+```
+
+Finish MFA verification with confirmation.
+
+| Param         | Type                                                                                    |
+| ------------- | --------------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#mfaconfirmverificationoptions">MFAConfirmVerificationOptions</a></code> |
+
+**Since:** 7.5.1
+
+--------------------
+
+
+### confirmEnrollmentSmsCode(...)
+
+```typescript
+confirmEnrollmentSmsCode(options: MFAConfirmVerificationOptions) => Promise<void>
+```
+
+Finish MFA enrollment with confirmation.
+
+| Param         | Type                                                                                    |
+| ------------- | --------------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#mfaconfirmverificationoptions">MFAConfirmVerificationOptions</a></code> |
+
+**Since:** 7.5.1
+
+--------------------
+
+
 ### addListener('authStateChange', ...)
 
 ```typescript
@@ -1757,6 +1836,124 @@ Listen for a phone verification code.
 | ------------------ | ----------------------------------------------------------------------- |
 | **`eventName`**    | <code>'phoneCodeSent'</code>                                            |
 | **`listenerFunc`** | <code><a href="#phonecodesentlistener">PhoneCodeSentListener</a></code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+**Since:** 1.3.0
+
+--------------------
+
+
+### addListener('mfaVerificationCompleted', ...)
+
+```typescript
+addListener(eventName: 'mfaVerificationCompleted', listenerFunc: MFAVerificationCompletedListener) => Promise<PluginListenerHandle>
+```
+
+Listen for a completed MFA verification.
+
+This listener only fires in two situations:
+1. **Instant verification**: In some cases the phone number can be instantly
+verified without needing to send or enter a verification code.
+2. **Auto-retrieval**: On some devices Google Play services can automatically
+detect the incoming verification SMS and perform verification without
+user action.
+
+Only available for Android.
+
+| Param              | Type                                                                                          |
+| ------------------ | --------------------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'mfaVerificationCompleted'</code>                                                       |
+| **`listenerFunc`** | <code><a href="#mfaverificationcompletedlistener">MFAVerificationCompletedListener</a></code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+**Since:** 1.3.0
+
+--------------------
+
+
+### addListener('mfaVerificationFailed', ...)
+
+```typescript
+addListener(eventName: 'mfaVerificationFailed', listenerFunc: MFAVerificationFailedListener) => Promise<PluginListenerHandle>
+```
+
+Listen for a failed phone verification.
+
+| Param              | Type                                                                                    |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'mfaVerificationFailed'</code>                                                    |
+| **`listenerFunc`** | <code><a href="#mfaverificationfailedlistener">MFAVerificationFailedListener</a></code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+**Since:** 1.3.0
+
+--------------------
+
+
+### addListener('mfaCodeSent', ...)
+
+```typescript
+addListener(eventName: 'mfaCodeSent', listenerFunc: MFACodeSentListener) => Promise<PluginListenerHandle>
+```
+
+Listen for a MFA verification code.
+
+| Param              | Type                                                                |
+| ------------------ | ------------------------------------------------------------------- |
+| **`eventName`**    | <code>'mfaCodeSent'</code>                                          |
+| **`listenerFunc`** | <code><a href="#mfacodesentlistener">MFACodeSentListener</a></code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+**Since:** 1.3.0
+
+--------------------
+
+
+### addListener('mfaEnrollmentVerificationCompleted', ...)
+
+```typescript
+addListener(eventName: 'mfaEnrollmentVerificationCompleted', listenerFunc: MFAVerificationCompletedListener) => Promise<PluginListenerHandle>
+```
+
+Listen for a completed MFA enrollment verification.
+
+This listener only fires in two situations:
+1. **Instant verification**: In some cases the phone number can be instantly
+verified without needing to send or enter a verification code.
+2. **Auto-retrieval**: On some devices Google Play services can automatically
+detect the incoming verification SMS and perform verification without
+user action.
+
+Only available for Android.
+
+| Param              | Type                                                                                          |
+| ------------------ | --------------------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'mfaEnrollmentVerificationCompleted'</code>                                             |
+| **`listenerFunc`** | <code><a href="#mfaverificationcompletedlistener">MFAVerificationCompletedListener</a></code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+**Since:** 1.3.0
+
+--------------------
+
+
+### addListener('mfaEnrollmentVerificationFailed', ...)
+
+```typescript
+addListener(eventName: 'mfaEnrollmentVerificationFailed', listenerFunc: MFAVerificationFailedListener) => Promise<PluginListenerHandle>
+```
+
+Listen for a failed phone verification in enrollment flow.
+
+| Param              | Type                                                                                    |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'mfaEnrollmentVerificationFailed'</code>                                          |
+| **`listenerFunc`** | <code><a href="#mfaverificationfailedlistener">MFAVerificationFailedListener</a></code> |
 
 **Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
 
@@ -2175,6 +2372,30 @@ bundle identifiers.
 | **`status`** | <code><a href="#apptrackingtransparencypermissionstate">AppTrackingTransparencyPermissionState</a></code> | The permission status of App Tracking Transparency. | 7.2.0 |
 
 
+#### MFAEnrollSecondFactorOptions
+
+| Prop                    | Type                 | Description                                                                                               | Since |
+| ----------------------- | -------------------- | --------------------------------------------------------------------------------------------------------- | ----- |
+| **`recaptchaVerifier`** | <code>unknown</code> | The reCAPTCHA verifier. Must be an instance of `firebase.auth.RecaptchaVerifier`. Only available for Web. | 7.5.0 |
+| **`phoneNumber`**       | <code>string</code>  | The phoneNumber for MFA enrollment.                                                                       |       |
+
+
+#### MFAVerifySecondFactorOptions
+
+| Prop                    | Type                 | Description                                                                                               | Since |
+| ----------------------- | -------------------- | --------------------------------------------------------------------------------------------------------- | ----- |
+| **`recaptchaVerifier`** | <code>unknown</code> | The reCAPTCHA verifier. Must be an instance of `firebase.auth.RecaptchaVerifier`. Only available for Web. | 7.5.0 |
+| **`error`**             | <code>unknown</code> | The MFA error to resolve. Only available for Web.                                                         |       |
+
+
+#### MFAConfirmVerificationOptions
+
+| Prop                 | Type                | Description                                                                                                                               |
+| -------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **`verificationId`** | <code>string</code> | The verification ID received from the `phoneCodeSent` listener. The `smsCode` option must also be provided.                               |
+| **`smsCode`**        | <code>string</code> | The SMS code either received from the `phoneCodeSent` listener or entered by the user. The `verificationId` option must also be provided. |
+
+
 #### PluginListenerHandle
 
 | Prop         | Type                                      |
@@ -2277,6 +2498,27 @@ Callback to receive notifications of failed phone verification.
 
 
 #### PhoneCodeSentListener
+
+Callback to receive the verification ID.
+
+<code>(event: <a href="#phonecodesentevent">PhoneCodeSentEvent</a>): void</code>
+
+
+#### MFAVerificationCompletedListener
+
+Callback to receive the verification code sent to the user's phone number.
+
+<code>(event: <a href="#phoneverificationcompletedevent">PhoneVerificationCompletedEvent</a>): void</code>
+
+
+#### MFAVerificationFailedListener
+
+Callback to receive notifications of failed MFA verification.
+
+<code>(event: <a href="#phoneverificationfailedevent">PhoneVerificationFailedEvent</a>): void</code>
+
+
+#### MFACodeSentListener
 
 Callback to receive the verification ID.
 

@@ -48,7 +48,7 @@ public class PhoneMFAHandler {
                 .setMultiFactorHint(phoneHint)
                 .setCallbacks(createCallbacks())
                 .setActivity(pluginImplementation.getPlugin().getActivity())
-                .setTimeout(30L, TimeUnit.SECONDS)
+                .setTimeout(60L, TimeUnit.SECONDS)
                 .requireSmsValidation(true)
                 .build());
     }
@@ -93,8 +93,7 @@ public class PhoneMFAHandler {
         PhoneAuthOptions phoneAuthOptions =
             PhoneAuthOptions.newBuilder(pluginImplementation.getFirebaseAuthInstance())
                 .setPhoneNumber(phoneNumber)
-                .setTimeout(30L, TimeUnit.SECONDS)
-                .requireSmsValidation(true)
+                .setTimeout(60L, TimeUnit.SECONDS)
                 .setMultiFactorSession(multiFactorSession)
                 .setActivity(pluginImplementation.getPlugin().getActivity())
                 .setCallbacks(createEnrollmentCallbacks())

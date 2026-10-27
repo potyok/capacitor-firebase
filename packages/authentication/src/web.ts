@@ -149,11 +149,23 @@ export class FirebaseAuthenticationWeb
     'MFA error object is missing.';
   public static readonly ERROR_MFA_RESOLVER_MISSING =
     'MFA resolver is missing.';
+  public static readonly ERROR_MFA_RESOLVER_INVALID_HINT_INDEX =
+    'MultifactorResolver hint index is invalid.';
+  public static readonly ERROR_MFA_RESOLVER_INVALID_HINT_TYPE =
+    'MultifactorResolver hint type is invalid.';
+  public static readonly ERROR_MFA_VERIFY_RESEND_CODE_NOT_SENT =
+    'verifySecondFactor must be called once before using the resendCode option.';
+  public static readonly ERROR_MFA_ENROLL_RESEND_CODE_NOT_SENT =
+    'enrollSecondFactor must be called once before using the resendCode option.';
 
   private readonly lastConfirmationResult: Map<string, ConfirmationResult> =
     new Map();
   private readonly lastMFAResolver: Map<string, MultiFactorResolver> =
     new Map();
+  // The Web SDK has no resending token, a new `verifyPhoneNumber` call sends a new code.
+  // These flags only track whether a code was sent before, to match the native `resendCode` behavior.
+  private mfaVerificationCodeSent = false;
+  private mfaEnrollmentCodeSent = false;
   constructor() {
     super();
     const auth = getAuth();
@@ -729,6 +741,11 @@ export class FirebaseAuthenticationWeb
     if (!user) {
       throw new Error(FirebaseAuthenticationWeb.ERROR_NO_USER_SIGNED_IN);
     }
+    if (options.resendCode && !this.mfaEnrollmentCodeSent) {
+      throw new Error(
+        FirebaseAuthenticationWeb.ERROR_MFA_ENROLL_RESEND_CODE_NOT_SENT,
+      );
+    }
     try {
       const session = await multiFactor(user).getSession();
       const phoneAuthProvider = new PhoneAuthProvider(auth);
@@ -739,6 +756,7 @@ export class FirebaseAuthenticationWeb
         },
         options.recaptchaVerifier,
       );
+      this.mfaEnrollmentCodeSent = true;
       const event: PhoneCodeSentEvent = {
         verificationId,
       };
@@ -771,18 +789,40 @@ export class FirebaseAuthenticationWeb
         FirebaseAuthenticationWeb.ERROR_RECAPTCHA_VERIFIER_MISSING,
       );
     }
+    if (options.resendCode && !this.mfaVerificationCodeSent) {
+      throw new Error(
+        FirebaseAuthenticationWeb.ERROR_MFA_VERIFY_RESEND_CODE_NOT_SENT,
+      );
+    }
     const auth = getAuth();
+    const resolver = getMultiFactorResolver(auth, options.error as any);
+    const hintIndex = options.hintIndex ?? 0;
+    if (
+      !Number.isInteger(hintIndex) ||
+      hintIndex < 0 ||
+      hintIndex >= resolver.hints.length
+    ) {
+      throw new Error(
+        FirebaseAuthenticationWeb.ERROR_MFA_RESOLVER_INVALID_HINT_INDEX,
+      );
+    }
+    const selectedHint = resolver.hints[hintIndex];
+    if (selectedHint.factorId !== PhoneMultiFactorGenerator.FACTOR_ID) {
+      throw new Error(
+        FirebaseAuthenticationWeb.ERROR_MFA_RESOLVER_INVALID_HINT_TYPE,
+      );
+    }
     try {
-      const resolver = getMultiFactorResolver(auth, options.error as any);
       const phoneAuthProvider = new PhoneAuthProvider(auth);
       const verificationId = await phoneAuthProvider.verifyPhoneNumber(
         {
-          multiFactorHint: resolver.hints[0],
+          multiFactorHint: selectedHint,
           session: resolver.session,
         },
         options.recaptchaVerifier,
       );
       this.lastMFAResolver.set(verificationId, resolver);
+      this.mfaVerificationCodeSent = true;
       const event: PhoneCodeSentEvent = {
         verificationId,
       };
@@ -790,7 +830,7 @@ export class FirebaseAuthenticationWeb
         FirebaseAuthenticationWeb.MFA_CODE_SENT_EVENT,
         event,
       );
-      return { hint: resolver.hints[0] };
+      return { hint: selectedHint };
     } catch (error) {
       const event: PhoneVerificationFailedEvent = {
         message: this.getErrorMessage(error),

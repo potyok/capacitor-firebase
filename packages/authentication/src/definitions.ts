@@ -681,6 +681,14 @@ export interface MFAEnrollSecondFactorOptions {
    *
    */
   phoneNumber: string;
+  /**
+   * Resend the verification code to the specified phone number.
+   * `enrollSecondFactor` must be called once before using this option.
+   *
+   * @since 8.1.2
+   * @default false
+   */
+  resendCode?: boolean;
 }
 
 export interface MFAVerifySecondFactorOptions {
@@ -699,6 +707,22 @@ export interface MFAVerifySecondFactorOptions {
    * Only available for Web.
    */
   error?: unknown;
+  /**
+   * The index of the second factor hint to verify.
+   * Only phone second factors are supported.
+   *
+   * @since 8.1.2
+   * @default 0
+   */
+  hintIndex?: number;
+  /**
+   * Resend the verification code to the phone number of the selected hint.
+   * `verifySecondFactor` must be called once before using this option.
+   *
+   * @since 8.1.2
+   * @default false
+   */
+  resendCode?: boolean;
 }
 /**
  * @since 7.5.0

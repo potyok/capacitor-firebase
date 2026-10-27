@@ -13,6 +13,7 @@ import com.google.firebase.auth.PhoneAuthProvider;
 import com.google.firebase.auth.PhoneMultiFactorGenerator;
 import com.google.firebase.auth.PhoneMultiFactorInfo;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.FirebaseAuthentication;
+import io.capawesome.capacitorjs.plugins.firebase.authentication.FirebaseAuthenticationPlugin;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.MFAEnrollmentVerificationCompletedEvent;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.MFAVerificationCompletedEvent;
 import io.capawesome.capacitorjs.plugins.firebase.authentication.classes.SignInResult;
@@ -25,7 +26,10 @@ public class PhoneMFAHandler {
     private FirebaseAuthentication pluginImplementation;
 
     @Nullable
-    private PhoneAuthProvider.ForceResendingToken forceResendingToken;
+    private PhoneAuthProvider.ForceResendingToken verificationForceResendingToken;
+
+    @Nullable
+    private PhoneAuthProvider.ForceResendingToken enrollmentForceResendingToken;
 
     @Nullable
     private String lastVerificationId;
@@ -34,18 +38,26 @@ public class PhoneMFAHandler {
         this.pluginImplementation = pluginImplementation;
     }
 
-    public void verifySecondFactor(@NonNull PhoneMultiFactorInfo phoneHint, @NonNull MultiFactorResolver multiFactorResolver) {
+    public void verifySecondFactor(
+        @NonNull PhoneMultiFactorInfo phoneHint,
+        @NonNull MultiFactorResolver multiFactorResolver,
+        boolean resendCode
+    ) throws Exception {
+        PhoneAuthOptions.Builder builder = PhoneAuthOptions.newBuilder(pluginImplementation.getFirebaseAuthInstance())
+            .setMultiFactorSession(multiFactorResolver.getSession())
+            .setMultiFactorHint(phoneHint)
+            .setCallbacks(createCallbacks())
+            .setActivity(pluginImplementation.getPlugin().getActivity())
+            .setTimeout(60L, TimeUnit.SECONDS)
+            .requireSmsValidation(true);
+        if (resendCode) {
+            if (verificationForceResendingToken == null) {
+                throw new Exception(FirebaseAuthenticationPlugin.ERROR_MFA_VERIFY_RESEND_TOKEN_MISSING);
+            }
+            builder.setForceResendingToken(verificationForceResendingToken);
+        }
         lastVerificationId = null;
-        PhoneAuthProvider.verifyPhoneNumber(
-            PhoneAuthOptions.newBuilder(pluginImplementation.getFirebaseAuthInstance())
-                .setMultiFactorSession(multiFactorResolver.getSession())
-                .setMultiFactorHint(phoneHint)
-                .setCallbacks(createCallbacks())
-                .setActivity(pluginImplementation.getPlugin().getActivity())
-                .setTimeout(60L, TimeUnit.SECONDS)
-                .requireSmsValidation(true)
-                .build()
-        );
+        PhoneAuthProvider.verifyPhoneNumber(builder.build());
     }
 
     public void confirmSmsCode(
@@ -78,15 +90,21 @@ public class PhoneMFAHandler {
             });
     }
 
-    public void enrollSecondFactor(@NonNull MultiFactorSession multiFactorSession, @NonNull String phoneNumber) {
-        PhoneAuthOptions phoneAuthOptions = PhoneAuthOptions.newBuilder(pluginImplementation.getFirebaseAuthInstance())
+    public void enrollSecondFactor(@NonNull MultiFactorSession multiFactorSession, @NonNull String phoneNumber, boolean resendCode)
+        throws Exception {
+        PhoneAuthOptions.Builder builder = PhoneAuthOptions.newBuilder(pluginImplementation.getFirebaseAuthInstance())
             .setPhoneNumber(phoneNumber)
             .setTimeout(60L, TimeUnit.SECONDS)
             .setMultiFactorSession(multiFactorSession)
             .setActivity(pluginImplementation.getPlugin().getActivity())
-            .setCallbacks(createEnrollmentCallbacks())
-            .build();
-        PhoneAuthProvider.verifyPhoneNumber(phoneAuthOptions);
+            .setCallbacks(createEnrollmentCallbacks());
+        if (resendCode) {
+            if (enrollmentForceResendingToken == null) {
+                throw new Exception(FirebaseAuthenticationPlugin.ERROR_MFA_ENROLL_RESEND_TOKEN_MISSING);
+            }
+            builder.setForceResendingToken(enrollmentForceResendingToken);
+        }
+        PhoneAuthProvider.verifyPhoneNumber(builder.build());
     }
 
     public void confirmEnrollmentSmsCode(
@@ -157,7 +175,7 @@ public class PhoneMFAHandler {
 
             @Override
             public void onCodeSent(@NonNull String verificationId, @NonNull PhoneAuthProvider.ForceResendingToken token) {
-                forceResendingToken = token;
+                verificationForceResendingToken = token;
                 lastVerificationId = verificationId;
                 pluginImplementation.handleMFACodeSent(verificationId);
             }
@@ -195,7 +213,7 @@ public class PhoneMFAHandler {
 
             @Override
             public void onCodeSent(@NonNull String verificationId, @NonNull PhoneAuthProvider.ForceResendingToken token) {
-                forceResendingToken = token;
+                enrollmentForceResendingToken = token;
                 lastVerificationId = verificationId;
                 pluginImplementation.handleMFACodeSent(verificationId);
             }

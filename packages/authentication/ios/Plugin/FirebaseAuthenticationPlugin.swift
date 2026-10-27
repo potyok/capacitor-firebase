@@ -106,6 +106,8 @@ public class FirebaseAuthenticationPlugin: CAPPlugin, CAPBridgedPlugin {
     public let errorMFAResolverInvalidHintIndex = "MultifactorResolver hint index is invalid."
     public let errorMFAResolverInvalidHintType = "MultifactorResolver hint type is invalid."
     public let errorMFAEnrollmentSession = "Enrollment session has a problem."
+    public let errorMFAVerifyResendCodeNotSent = "verifySecondFactor must be called once before using the resendCode option."
+    public let errorMFAEnrollResendCodeNotSent = "enrollSecondFactor must be called once before using the resendCode option."
     public let authStateChangeEvent = "authStateChange"
     public let idTokenChangeEvent = "idTokenChange"
     public let phoneVerificationFailedEvent = "phoneVerificationFailed"

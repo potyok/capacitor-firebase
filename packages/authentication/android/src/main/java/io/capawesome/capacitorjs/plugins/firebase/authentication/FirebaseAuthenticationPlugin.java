@@ -74,6 +74,10 @@ public class FirebaseAuthenticationPlugin extends Plugin {
     public static final String ERROR_MULTIFACTOR_RESOLVER_IS_NULL = "MultifactorResolver must be provided.";
     public static final String ERROR_MULTIFACTOR_RESOLVER_INVALID_HINT_INDEX = "MultifactorResolver hint index is invalid.";
     public static final String ERROR_MULTIFACTOR_RESOLVER_INVALID_HINT_TYPE = "MultifactorResolver hint type is invalid.";
+    public static final String ERROR_MFA_VERIFY_RESEND_TOKEN_MISSING =
+        "verifySecondFactor must be called once before using the resendCode option.";
+    public static final String ERROR_MFA_ENROLL_RESEND_TOKEN_MISSING =
+        "enrollSecondFactor must be called once before using the resendCode option.";
 
     private FirebaseAuthenticationConfig config;
     private FirebaseAuthentication implementation;

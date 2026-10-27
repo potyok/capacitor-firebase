@@ -2374,18 +2374,21 @@ bundle identifiers.
 
 #### MFAEnrollSecondFactorOptions
 
-| Prop                    | Type                 | Description                                                                                               | Since |
-| ----------------------- | -------------------- | --------------------------------------------------------------------------------------------------------- | ----- |
-| **`recaptchaVerifier`** | <code>unknown</code> | The reCAPTCHA verifier. Must be an instance of `firebase.auth.RecaptchaVerifier`. Only available for Web. | 7.5.0 |
-| **`phoneNumber`**       | <code>string</code>  | The phoneNumber for MFA enrollment.                                                                       |       |
+| Prop                    | Type                 | Description                                                                                                                    | Default            | Since |
+| ----------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------ | ----- |
+| **`recaptchaVerifier`** | <code>unknown</code> | The reCAPTCHA verifier. Must be an instance of `firebase.auth.RecaptchaVerifier`. Only available for Web.                      |                    | 7.5.0 |
+| **`phoneNumber`**       | <code>string</code>  | The phoneNumber for MFA enrollment.                                                                                            |                    |       |
+| **`resendCode`**        | <code>boolean</code> | Resend the verification code to the specified phone number. `enrollSecondFactor` must be called once before using this option. | <code>false</code> | 8.1.2 |
 
 
 #### MFAVerifySecondFactorOptions
 
-| Prop                    | Type                 | Description                                                                                               | Since |
-| ----------------------- | -------------------- | --------------------------------------------------------------------------------------------------------- | ----- |
-| **`recaptchaVerifier`** | <code>unknown</code> | The reCAPTCHA verifier. Must be an instance of `firebase.auth.RecaptchaVerifier`. Only available for Web. | 7.5.0 |
-| **`error`**             | <code>unknown</code> | The MFA error to resolve. Only available for Web.                                                         |       |
+| Prop                    | Type                 | Description                                                                                                                               | Default            | Since |
+| ----------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ----- |
+| **`recaptchaVerifier`** | <code>unknown</code> | The reCAPTCHA verifier. Must be an instance of `firebase.auth.RecaptchaVerifier`. Only available for Web.                                 |                    | 7.5.0 |
+| **`error`**             | <code>unknown</code> | The MFA error to resolve. Only available for Web.                                                                                         |                    |       |
+| **`hintIndex`**         | <code>number</code>  | The index of the second factor hint to verify. Only phone second factors are supported.                                                   | <code>0</code>     | 8.1.2 |
+| **`resendCode`**        | <code>boolean</code> | Resend the verification code to the phone number of the selected hint. `verifySecondFactor` must be called once before using this option. | <code>false</code> | 8.1.2 |
 
 
 #### MFAConfirmVerificationOptions

@@ -5,6 +5,10 @@ import FirebaseAuth
 
 class PhoneMFAHandler: NSObject {
     private var pluginImplementation: FirebaseAuthentication
+    // The iOS SDK has no resending token, a new `verifyPhoneNumber` call sends a new code.
+    // These flags only track whether a code was sent before, to match the Android `resendCode` behavior.
+    private(set) var verificationCodeSent = false
+    private(set) var enrollmentCodeSent = false
 
     init(_ pluginImplementation: FirebaseAuthentication) {
         self.pluginImplementation = pluginImplementation
@@ -20,6 +24,7 @@ class PhoneMFAHandler: NSObject {
             if let error = error {
                 self.pluginImplementation.handleMFAVerificationFailed(error)
             } else {
+                self.verificationCodeSent = true
                 self.pluginImplementation.handleMFACodeSent(verificationId ?? "")
             }
         }
@@ -34,6 +39,7 @@ class PhoneMFAHandler: NSObject {
             if let error = error {
                 self.pluginImplementation.handleMFAEnrollmentVerificationFailed(error)
             } else {
+                self.enrollmentCodeSent = true
                 self.pluginImplementation.handleMFACodeSent(verificationId ?? "")
             }
         }

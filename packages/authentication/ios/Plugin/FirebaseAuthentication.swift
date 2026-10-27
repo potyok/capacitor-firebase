@@ -449,8 +449,13 @@ public typealias AuthStateChangedObserver = () -> Void
 
     @objc func enrollSecondFactor(_ call: CAPPluginCall) {
         let phoneNumber = call.getString("phoneNumber", "")
+        let resendCode = call.getBool("resendCode", false)
         guard let user = self.getCurrentUser() else {
             call.reject(plugin.errorNoUserSignedIn)
+            return
+        }
+        if resendCode && !self.phoneMFAHandler.enrollmentCodeSent {
+            call.reject(plugin.errorMFAEnrollResendCodeNotSent)
             return
         }
 
@@ -472,7 +477,13 @@ public typealias AuthStateChangedObserver = () -> Void
         }
 
         let hintIndex = call.getInt("hintIndex", 0)
+        let resendCode = call.getBool("resendCode", false)
         let hints = savedResolver.hints
+
+        if resendCode && !self.phoneMFAHandler.verificationCodeSent {
+            call.reject(plugin.errorMFAVerifyResendCodeNotSent)
+            return
+        }
 
         if hintIndex < 0 || hintIndex >= hints.count {
             call.reject(plugin.errorMFAResolverInvalidHintIndex)

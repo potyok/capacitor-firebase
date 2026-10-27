@@ -496,6 +496,7 @@ public class FirebaseAuthentication {
 
     public void enrollSecondFactor(final PluginCall call) {
         String phoneNumber = call.getString("phoneNumber", "");
+        boolean resendCode = call.getBoolean("resendCode", false);
         FirebaseUser user = getCurrentUser();
         if (user != null) {
             user
@@ -504,8 +505,14 @@ public class FirebaseAuthentication {
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         MultiFactorSession multiFactorSession = task.getResult();
-                        phoneMFAHandler.enrollSecondFactor(multiFactorSession, phoneNumber);
-                        call.resolve();
+                        try {
+                            phoneMFAHandler.enrollSecondFactor(multiFactorSession, phoneNumber, resendCode);
+                            call.resolve();
+                        } catch (Exception exception) {
+                            Logger.error(TAG, exception.getMessage(), exception);
+                            String code = FirebaseAuthenticationHelper.createErrorCode(exception);
+                            call.reject(exception.getMessage(), code);
+                        }
                     } else {
                         Exception exception = task.getException();
                         Logger.error(TAG, exception.getMessage(), exception);
@@ -518,13 +525,14 @@ public class FirebaseAuthentication {
         }
     }
 
-    public void verifySecondFactor(final PluginCall call) {
+    public void verifySecondFactor(final PluginCall call) throws Exception {
         if (multiFactorResolver == null) {
             call.reject(FirebaseAuthenticationPlugin.ERROR_MULTIFACTOR_RESOLVER_IS_NULL);
             return;
         }
 
         int hintIndex = call.getInt("hintIndex", 0);
+        boolean resendCode = call.getBoolean("resendCode", false);
         List<MultiFactorInfo> hints = multiFactorResolver.getHints();
 
         if (hintIndex < 0 || hintIndex >= hints.size()) {
@@ -534,7 +542,7 @@ public class FirebaseAuthentication {
 
         MultiFactorInfo selectedHint = hints.get(hintIndex);
         if (selectedHint instanceof PhoneMultiFactorInfo phoneHint) {
-            phoneMFAHandler.verifySecondFactor(phoneHint, multiFactorResolver);
+            phoneMFAHandler.verifySecondFactor(phoneHint, multiFactorResolver, resendCode);
             call.resolve(FirebaseAuthenticationHelper.createMultiFactorHintResult(selectedHint));
         } else {
             call.reject(FirebaseAuthenticationPlugin.ERROR_MULTIFACTOR_RESOLVER_INVALID_HINT_TYPE);
